@@ -1,0 +1,8 @@
+{
+  "name": "Remix_AbsenEkstra",
+  "description": "Platform modern dan responsif untuk mengelola absensi serta data kegiatan ekstrakurikuler sekolah secara efisien dan terintegrasi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

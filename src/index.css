@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Cinematic Backgrounds and Ambient Lighting */
+.cinema-light {
+  background-color: #f8fafc;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -100px, rgba(224, 231, 255, 0.7), transparent 80%),
+    radial-gradient(ellipse 700px 400px at 100% 100%, rgba(219, 234, 254, 0.6), transparent 75%),
+    radial-gradient(ellipse 600px 300px at 0% 50%, rgba(241, 245, 249, 0.8), transparent 70%);
+  background-attachment: fixed;
+}
+
+.cinema-midnight {
+  background-color: #070a13;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -150px, rgba(30, 58, 138, 0.28), transparent 80%),
+    radial-gradient(ellipse 700px 450px at 95% 85%, rgba(14, 116, 144, 0.16), transparent 75%),
+    radial-gradient(circle 500px at 5% 40%, rgba(67, 56, 202, 0.14), transparent 70%);
+  background-attachment: fixed;
+}
+
+.cinema-emerald {
+  background-color: #050d0a;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -150px, rgba(6, 78, 59, 0.32), transparent 80%),
+    radial-gradient(ellipse 700px 450px at 95% 85%, rgba(13, 148, 136, 0.18), transparent 75%),
+    radial-gradient(circle 500px at 5% 40%, rgba(4, 120, 87, 0.16), transparent 70%);
+  background-attachment: fixed;
+}
+
+.cinema-amber {
+  background-color: #0f0b07;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -150px, rgba(146, 64, 14, 0.26), transparent 80%),
+    radial-gradient(ellipse 700px 450px at 95% 85%, rgba(180, 83, 9, 0.16), transparent 75%),
+    radial-gradient(circle 500px at 5% 40%, rgba(120, 53, 15, 0.15), transparent 70%);
+  background-attachment: fixed;
+}
+
+.cinema-velvet {
+  background-color: #0c0814;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -150px, rgba(88, 28, 135, 0.28), transparent 80%),
+    radial-gradient(ellipse 700px 450px at 95% 85%, rgba(157, 23, 77, 0.18), transparent 75%),
+    radial-gradient(circle 500px at 5% 40%, rgba(76, 29, 149, 0.15), transparent 70%);
+  background-attachment: fixed;
+}
+
+.cinema-obsidian {
+  background-color: #050507;
+  background-image:
+    radial-gradient(ellipse 900px 500px at 50% -150px, rgba(51, 65, 85, 0.22), transparent 80%),
+    radial-gradient(ellipse 700px 450px at 95% 85%, rgba(30, 41, 59, 0.24), transparent 75%),
+    radial-gradient(circle 500px at 5% 40%, rgba(15, 23, 42, 0.3), transparent 70%);
+  background-attachment: fixed;
+}
+
