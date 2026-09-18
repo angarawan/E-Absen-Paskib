@@ -11,6 +11,8 @@ import {
   Lock,
 } from 'lucide-react';
 import { UserRole } from '../../types';
+import { PWAInstallButton } from '../common/PWAInstallButton';
+import { CloudSyncBadge } from '../common/CloudSyncBadge';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -160,6 +162,12 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar, isSidebarOpen }
           <span>•</span>
           <span>Sem: {profilSekolah.semester}</span>
         </div>
+
+        {/* Cloud Firebase Real-Time Synchronization Badge */}
+        <CloudSyncBadge />
+
+        {/* In-App PWA Install Button */}
+        <PWAInstallButton variant="compact" />
 
         {/* Secure Storage Status Indicator */}
         {currentUser?.role === 'ADMIN' && (

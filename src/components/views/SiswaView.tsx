@@ -18,6 +18,7 @@ import {
   Send,
   RefreshCw,
   Eye,
+  AlertTriangle,
 } from 'lucide-react';
 import { Modal } from '../common/Modal';
 import { StatusBadge } from '../common/Badge';
@@ -30,6 +31,8 @@ export const SiswaView: React.FC = () => {
     addSiswa,
     updateSiswa,
     deleteSiswa,
+    deleteMultipleSiswa,
+    deleteAllSiswa,
     resetUserPassword,
     profilSekolah,
     currentUser,
@@ -43,6 +46,11 @@ export const SiswaView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedKelas, setSelectedKelas] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+
+  // Bulk Selection & Deletion State
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
+  const [bulkDeleteType, setBulkDeleteType] = useState<'selected' | 'all'>('selected');
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -84,6 +92,52 @@ export const SiswaView: React.FC = () => {
       return matchSearch && matchKelas && matchStatus;
     });
   }, [siswa, searchTerm, selectedKelas, selectedStatus]);
+
+  // Bulk selection calculations
+  const isAllFilteredSelected = useMemo(() => {
+    if (filteredList.length === 0) return false;
+    return filteredList.every((s) => selectedIds.includes(s.id));
+  }, [filteredList, selectedIds]);
+
+  const isSomeFilteredSelected = useMemo(() => {
+    return filteredList.some((s) => selectedIds.includes(s.id)) && !isAllFilteredSelected;
+  }, [filteredList, selectedIds, isAllFilteredSelected]);
+
+  const handleToggleSelectAll = () => {
+    if (isAllFilteredSelected) {
+      const filteredIdSet = new Set(filteredList.map((s) => s.id));
+      setSelectedIds((prev) => prev.filter((id) => !filteredIdSet.has(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...filteredList.map((s) => s.id)])));
+    }
+  };
+
+  const handleToggleSelectOne = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllInDatabase = () => {
+    setSelectedIds(siswa.map((s) => s.id));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleExecuteBulkDelete = () => {
+    if (bulkDeleteType === 'all') {
+      deleteAllSiswa();
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+    } else {
+      if (selectedIds.length === 0) return;
+      deleteMultipleSiswa(selectedIds);
+      setSelectedIds([]);
+      setIsBulkDeleteModalOpen(false);
+    }
+  };
 
   // Paginated list
   const totalPages = Math.ceil(filteredList.length / itemsPerPage) || 1;
@@ -149,10 +203,11 @@ export const SiswaView: React.FC = () => {
   const handleDelete = (s: Siswa) => {
     if (
       confirm(
-        `Apakah Anda yakin ingin menghapus data siswa "${s.nama}"? Seluruh akun login, keanggotaan ekskul, dan absensi siswa ini juga akan dibersihkan.`
+        `Apakah Anda yakin ingin menghapus data murid "${s.nama}"? Seluruh akun login, keanggotaan ekskul, dan absensi murid ini juga akan dibersihkan.`
       )
     ) {
       deleteSiswa(s.id);
+      setSelectedIds((prev) => prev.filter((id) => id !== s.id));
     }
   };
 
@@ -216,7 +271,7 @@ export const SiswaView: React.FC = () => {
                 Manajemen Akun Murid oleh Guru Pembina
               </p>
               <p className="text-blue-700 dark:text-blue-300 mt-0.5">
-                Setiap siswa yang Anda tambahkan otomatis memiliki akun login dengan <strong>Username: siswa_[nis]</strong> dan <strong>Password default: siswa123</strong>.
+                Setiap murid yang Anda tambahkan otomatis memiliki akun login dengan <strong>Username: siswa_[nis]</strong> dan <strong>Password default: siswa123</strong>.
               </p>
             </div>
           </div>
@@ -239,7 +294,7 @@ export const SiswaView: React.FC = () => {
             <input
               id="input-cari-siswa"
               type="text"
-              placeholder="Cari nama, NIS, atau NISN..."
+              placeholder="Cari nama murid, NIS, atau NISN..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -251,6 +306,27 @@ export const SiswaView: React.FC = () => {
 
           {/* Filters & Actions */}
           <div className="flex flex-wrap items-center gap-2">
+            {/* Kotak Centang Pilih Semua Murid */}
+            {canManage && (
+              <label
+                id="label-centang-semua-murid"
+                className="flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/60 transition-colors"
+                title="Centang semua murid yang ditampilkan"
+              >
+                <input
+                  type="checkbox"
+                  id="checkbox-pilih-semua-filter"
+                  checked={filteredList.length > 0 && isAllFilteredSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isSomeFilteredSelected;
+                  }}
+                  onChange={handleToggleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                />
+                <span>Centang Semua</span>
+              </label>
+            )}
+
             {/* Filter Kelas */}
             <div className="flex items-center gap-1.5">
               <Filter className="w-3.5 h-3.5 text-slate-400" />
@@ -299,6 +375,23 @@ export const SiswaView: React.FC = () => {
               <span>Cetak Slip Akun</span>
             </button>
 
+            {/* Hapus Semua Button (Admin & Guru Pembina) */}
+            {canManage && (
+              <button
+                id="btn-hapus-semua-murid"
+                onClick={() => {
+                  setBulkDeleteType('all');
+                  setIsBulkDeleteModalOpen(true);
+                }}
+                disabled={siswa.length === 0}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-semibold text-xs sm:text-sm transition-colors disabled:opacity-40"
+                title="Hapus seluruh data murid dari sistem"
+              >
+                <Trash2 className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                <span>Hapus Semua</span>
+              </button>
+            )}
+
             {/* Add Button (Guru Pembina & Admin) */}
             {canManage && (
               <button
@@ -307,12 +400,60 @@ export const SiswaView: React.FC = () => {
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                <span>Tambah Siswa & Buat Akun</span>
+                <span>Tambah Murid & Buat Akun</span>
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* Floating / Active Selection Banner when checkboxes are checked */}
+      {selectedIds.length > 0 && canManage && (
+        <div
+          id="banner-bulk-actions"
+          className="p-3.5 px-4 rounded-2xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-sm"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="w-6 h-6 rounded-full bg-rose-600 text-white font-bold flex items-center justify-center text-xs shrink-0">
+              {selectedIds.length}
+            </span>
+            <span className="font-semibold text-rose-950 dark:text-rose-100">
+              {selectedIds.length} murid tercentang dari total {siswa.length} murid
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              id="btn-centang-seluruh-database"
+              onClick={handleSelectAllInDatabase}
+              className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 font-medium hover:bg-rose-100 dark:hover:bg-slate-700 transition-colors"
+            >
+              Centang Seluruh {siswa.length} Murid
+            </button>
+            <button
+              type="button"
+              id="btn-batal-pilihan-centang"
+              onClick={handleClearSelection}
+              className="px-3 py-1.5 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+              Batal Centang
+            </button>
+            <button
+              type="button"
+              id="btn-hapus-murid-terpilih"
+              onClick={() => {
+                setBulkDeleteType('selected');
+                setIsBulkDeleteModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors shadow-xs"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus {selectedIds.length} Murid Terpilih</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
@@ -320,8 +461,23 @@ export const SiswaView: React.FC = () => {
           <table className="w-full text-left text-xs sm:text-sm">
             <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 uppercase text-[11px] font-semibold border-b border-slate-200 dark:border-slate-800">
               <tr>
+                {canManage && (
+                  <th className="px-3.5 py-3.5 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      id="checkbox-select-all-header"
+                      checked={filteredList.length > 0 && isAllFilteredSelected}
+                      ref={(el) => {
+                        if (el) el.indeterminate = isSomeFilteredSelected;
+                      }}
+                      onChange={handleToggleSelectAll}
+                      className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                      title="Centang semua murid pada tabel ini"
+                    />
+                  </th>
+                )}
                 <th className="px-4 py-3.5">NIS / NISN</th>
-                <th className="px-4 py-3.5">Nama Lengkap</th>
+                <th className="px-4 py-3.5">Nama Lengkap Murid</th>
                 <th className="px-4 py-3.5">L/P</th>
                 <th className="px-4 py-3.5">Kelas</th>
                 <th className="px-4 py-3.5">Akun Login</th>
@@ -332,17 +488,35 @@ export const SiswaView: React.FC = () => {
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {paginatedList.length === 0 ? (
                 <tr>
-                  <td colSpan={canManage ? 7 : 6} className="px-4 py-8 text-center text-slate-400">
-                    Tidak ada data siswa yang sesuai dengan filter atau kata kunci.
+                  <td colSpan={canManage ? 8 : 6} className="px-4 py-8 text-center text-slate-400">
+                    Tidak ada data murid yang sesuai dengan filter atau kata kunci.
                   </td>
                 </tr>
               ) : (
                 paginatedList.map((s) => {
                   const userObj = getStudentUser(s);
                   const username = userObj?.username || `siswa_${s.nis}`;
+                  const isChecked = selectedIds.includes(s.id);
 
                   return (
-                    <tr key={s.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr
+                      key={s.id}
+                      className={`hover:bg-slate-50/70 dark:hover:bg-slate-800/30 transition-colors ${
+                        isChecked ? 'bg-rose-50/40 dark:bg-rose-950/20' : ''
+                      }`}
+                    >
+                      {canManage && (
+                        <td className="px-3.5 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            id={`checkbox-murid-${s.id}`}
+                            checked={isChecked}
+                            onChange={() => handleToggleSelectOne(s.id)}
+                            className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                            title={`Centang ${s.nama}`}
+                          />
+                        </td>
+                      )}
                       <td className="px-4 py-3 font-mono whitespace-nowrap text-slate-700 dark:text-slate-300">
                         <span className="font-bold text-slate-900 dark:text-white">{s.nis}</span>
                         <span className="block text-[11px] text-slate-400">{s.nisn}</span>
@@ -392,7 +566,7 @@ export const SiswaView: React.FC = () => {
                               id={`btn-edit-siswa-${s.nis}`}
                               onClick={() => openEditModal(s)}
                               className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
-                              title="Edit data siswa"
+                              title="Edit data murid"
                             >
                               <Edit2 className="w-4 h-4" />
                             </button>
@@ -400,7 +574,7 @@ export const SiswaView: React.FC = () => {
                               id={`btn-delete-siswa-${s.nis}`}
                               onClick={() => handleDelete(s)}
                               className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors"
-                              title="Hapus data siswa"
+                              title="Hapus data murid"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -419,7 +593,7 @@ export const SiswaView: React.FC = () => {
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-500 dark:text-slate-400">
           <div>
             Menampilkan {filteredList.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1} -{' '}
-            {Math.min(currentPage * itemsPerPage, filteredList.length)} dari {filteredList.length} siswa
+            {Math.min(currentPage * itemsPerPage, filteredList.length)} dari {filteredList.length} murid
           </div>
           <div className="flex items-center gap-1 self-end sm:self-auto">
             <button
@@ -443,11 +617,11 @@ export const SiswaView: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Tambah / Edit Siswa */}
+      {/* Modal Tambah / Edit Murid */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={modalMode === 'create' ? 'Tambah Siswa Baru & Otomatis Buat Akun' : 'Edit Data Siswa'}
+        title={modalMode === 'create' ? 'Tambah Murid Baru & Otomatis Buat Akun' : 'Edit Data Murid'}
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           {modalMode === 'create' && (
@@ -492,14 +666,14 @@ export const SiswaView: React.FC = () => {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Nama Lengkap Siswa <span className="text-rose-500">*</span>
+              Nama Lengkap Murid <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
               value={formData.nama}
               onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-              placeholder="Nama lengkap siswa"
+              placeholder="Nama lengkap murid"
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -576,17 +750,17 @@ export const SiswaView: React.FC = () => {
               type="submit"
               className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 shadow-xs transition-colors"
             >
-              {modalMode === 'create' ? 'Simpan Siswa & Buat Akun' : 'Perbarui Data'}
+              {modalMode === 'create' ? 'Simpan Murid & Buat Akun' : 'Perbarui Data'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Modal Kartu Akun Login Siswa (Individual) */}
+      {/* Modal Kartu Akun Login Murid (Individual) */}
       <Modal
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
-        title="Kartu Akun Login Siswa"
+        title="Kartu Akun Login Murid"
       >
         {selectedAccountStudent && (() => {
           const userObj = getStudentUser(selectedAccountStudent);
@@ -597,7 +771,7 @@ export const SiswaView: React.FC = () => {
             <div className="space-y-4">
               <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-sm">
                 <p className="text-[11px] uppercase tracking-wider text-blue-200 font-bold">
-                  Akun Siswa Dibuatkan oleh Guru Pembina
+                  Akun Murid Dibuatkan oleh Guru Pembina
                 </p>
                 <h3 className="text-lg font-black mt-1">{selectedAccountStudent.nama}</h3>
                 <p className="text-xs text-blue-100 mt-0.5">
@@ -756,6 +930,57 @@ export const SiswaView: React.FC = () => {
               className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 transition-colors"
             >
               Tutup
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Konfirmasi Hapus Semua / Hapus Terpilih */}
+      <Modal
+        isOpen={isBulkDeleteModalOpen}
+        onClose={() => setIsBulkDeleteModalOpen(false)}
+        title={bulkDeleteType === 'all' ? 'Konfirmasi Hapus Seluruh Data Murid' : `Konfirmasi Hapus ${selectedIds.length} Data Murid`}
+      >
+        <div className="space-y-4">
+          <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+            <div className="text-xs text-rose-900 dark:text-rose-200">
+              <h4 className="font-bold text-sm text-rose-950 dark:text-rose-100">
+                {bulkDeleteType === 'all'
+                  ? 'Peringatan Penghapusan Seluruh Murid!'
+                  : `Peringatan Hapus ${selectedIds.length} Murid Terpilih!`}
+              </h4>
+              <p className="mt-1 leading-relaxed">
+                {bulkDeleteType === 'all'
+                  ? `Tindakan ini akan menghapus SEMUA (${siswa.length}) data murid yang tersimpan di sistem. Seluruh akun login murid, data pendaftaran keanggotaan ekstrakurikuler, dan catatan absensi murid terkait juga akan otomatis dibersihkan.`
+                  : `Tindakan ini akan menghapus ${selectedIds.length} data murid yang tercentang. Seluruh akun login, keanggotaan ekskul, dan catatan absensi terkait murid-murid tersebut juga akan ikut dibersihkan.`}
+              </p>
+              <p className="mt-2 font-semibold text-rose-800 dark:text-rose-300">
+                Perhatian: Tindakan ini bersifat permanen dan tidak dapat dibatalkan.
+              </p>
+            </div>
+          </div>
+
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100 dark:border-slate-800">
+            <button
+              type="button"
+              onClick={() => setIsBulkDeleteModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              type="button"
+              id="btn-konfirmasi-hapus-permanen"
+              onClick={handleExecuteBulkDelete}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-rose-600 text-white hover:bg-rose-700 shadow-sm transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              <span>
+                {bulkDeleteType === 'all'
+                  ? `Ya, Hapus Seluruh ${siswa.length} Murid`
+                  : `Ya, Hapus ${selectedIds.length} Murid`}
+              </span>
             </button>
           </div>
         </div>

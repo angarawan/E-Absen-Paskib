@@ -1,0 +1,32 @@
+{
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "name": "Absensi Ekstrakurikuler Sekolah",
+  "short_name": "AbsenEkskul",
+  "description": "Sistem Informasi Manajemen Presensi & Kegiatan Ekstrakurikuler Sekolah",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1d4ed8",
+  "background_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

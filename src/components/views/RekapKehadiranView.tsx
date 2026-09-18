@@ -121,7 +121,7 @@ export const RekapKehadiranView: React.FC = () => {
     const dataToExport = filteredRekap.map((item, index) => ({
       No: index + 1,
       NIS: item.nis,
-      'Nama Siswa': item.nama,
+      'Nama Murid': item.nama,
       Kelas: item.kelas,
       Ekstrakurikuler: item.ekskulNama,
       Hadir: item.hadir,
@@ -180,7 +180,7 @@ export const RekapKehadiranView: React.FC = () => {
     const headers = [
       'No',
       'NIS',
-      'Nama Siswa',
+      'Nama Murid',
       'Kelas',
       'Ekstrakurikuler',
       'Hadir',
@@ -234,7 +234,7 @@ export const RekapKehadiranView: React.FC = () => {
             <input
               id="input-cari-rekap"
               type="text"
-              placeholder="Cari siswa atau ekstrakurikuler..."
+              placeholder="Cari murid atau ekstrakurikuler..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -372,7 +372,7 @@ export const RekapKehadiranView: React.FC = () => {
               <tr>
                 <th className="border border-slate-200 dark:border-slate-800 print:border-black px-3 py-2.5 w-10 text-center">No</th>
                 <th className="border border-slate-200 dark:border-slate-800 print:border-black px-3 py-2.5">NIS</th>
-                <th className="border border-slate-200 dark:border-slate-800 print:border-black px-3 py-2.5">Nama Siswa</th>
+                <th className="border border-slate-200 dark:border-slate-800 print:border-black px-3 py-2.5">Nama Murid</th>
                 <th className="border border-slate-200 dark:border-slate-800 print:border-black px-3 py-2.5">Kelas</th>
                 <th className="border border-slate-200 dark:border-slate-800 print:border-black px-3 py-2.5">Ekstrakurikuler</th>
                 <th className="border border-slate-200 dark:border-slate-800 print:border-black px-3 py-2.5 text-center bg-emerald-50/50 dark:bg-emerald-950/30">Hadir</th>

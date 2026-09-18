@@ -75,7 +75,7 @@ export const AnggotaView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSiswaId || !newEkskulId) {
-      alert('Siswa dan Ekstrakurikuler harus dipilih!');
+      alert('Murid dan Ekstrakurikuler harus dipilih!');
       return;
     }
     const res = addAnggota(newSiswaId, newEkskulId, tahunAjaran);
@@ -105,7 +105,7 @@ export const AnggotaView: React.FC = () => {
             <input
               id="input-cari-anggota"
               type="text"
-              placeholder="Cari nama siswa, NIS, atau nama ekskul..."
+              placeholder="Cari nama murid, NIS, atau nama ekskul..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -150,7 +150,7 @@ export const AnggotaView: React.FC = () => {
                 className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm shadow-xs transition-colors whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
-                <span>Daftarkan Siswa</span>
+                <span>Daftarkan Murid</span>
               </button>
             )}
           </div>
@@ -164,7 +164,7 @@ export const AnggotaView: React.FC = () => {
             <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 uppercase text-[11px] font-semibold border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-4 py-3.5">NIS</th>
-                <th className="px-4 py-3.5">Nama Siswa</th>
+                <th className="px-4 py-3.5">Nama Murid</th>
                 <th className="px-4 py-3.5">Kelas</th>
                 <th className="px-4 py-3.5">Ekstrakurikuler</th>
                 <th className="px-4 py-3.5">Tahun Ajaran</th>
@@ -224,20 +224,20 @@ export const AnggotaView: React.FC = () => {
           </table>
         </div>
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-500">
-          Total: {filteredAnggota.length} anggota terdaftar • Catatan: Siswa diperbolehkan mengikuti lebih dari 1 kegiatan.
+          Total: {filteredAnggota.length} anggota terdaftar • Catatan: Murid diperbolehkan mengikuti lebih dari 1 kegiatan.
         </div>
       </div>
 
-      {/* Modal Hubungkan Siswa dengan Ekskul */}
+      {/* Modal Hubungkan Murid dengan Ekskul */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title="Daftarkan Siswa ke Ekstrakurikuler"
+        title="Daftarkan Murid ke Ekstrakurikuler"
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Pilih Siswa <span className="text-rose-500">*</span>
+              Pilih Murid <span className="text-rose-500">*</span>
             </label>
             <select
               required

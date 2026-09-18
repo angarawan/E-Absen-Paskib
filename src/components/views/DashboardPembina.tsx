@@ -111,13 +111,13 @@ export const DashboardPembina: React.FC = () => {
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
           <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            Total Anggota Siswa
+            Total Anggota Murid
           </p>
           <h4 className="text-2xl font-black text-slate-900 dark:text-white mt-1">
             {myAnggotas.length}
           </h4>
           <p className="text-[11px] text-teal-600 dark:text-teal-400 mt-1 font-medium">
-            Siswa aktif terdaftar
+            Murid aktif terdaftar
           </p>
         </div>
 
@@ -174,7 +174,7 @@ export const DashboardPembina: React.FC = () => {
                         Jadwal: {ek.hari}, {ek.jam} • Tempat: {ek.tempat}
                       </p>
                       <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-                        {countMembers} Siswa Terdaftar
+                        {countMembers} Murid Terdaftar
                       </p>
                     </div>
 
@@ -199,7 +199,7 @@ export const DashboardPembina: React.FC = () => {
                   Riwayat Absensi Binaan Terakhir
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Data kehadiran terbaru siswa pada kegiatan yang Anda bina
+                  Data kehadiran terbaru murid pada kegiatan yang Anda bina
                 </p>
               </div>
               <button
@@ -215,7 +215,7 @@ export const DashboardPembina: React.FC = () => {
                 <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 uppercase font-semibold">
                   <tr>
                     <th className="px-4 py-3">Tanggal</th>
-                    <th className="px-4 py-3">Siswa</th>
+                    <th className="px-4 py-3">Murid</th>
                     <th className="px-4 py-3">Kegiatan</th>
                     <th className="px-4 py-3">Status</th>
                   </tr>

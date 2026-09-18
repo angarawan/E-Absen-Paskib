@@ -18,6 +18,7 @@ import {
   Database,
   ShieldCheck,
 } from 'lucide-react';
+import { PWAInstallButton } from '../common/PWAInstallButton';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -126,7 +127,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     className={`w-full ${navItemClass(currentMenu === 'siswa')}`}
                   >
                     <Users className="w-4 h-4" />
-                    <span>Siswa</span>
+                    <span>Murid</span>
                   </button>
                   <button
                     id="menu-pembina"
@@ -253,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
               <div>
                 <div className="px-3 mb-2 text-xs font-semibold text-slate-400 dark:text-slate-500 tracking-wider uppercase">
-                  ABSENSI SISWA
+                  ABSENSI MURID
                 </div>
                 <div className="space-y-1">
                   <button
@@ -351,7 +352,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   className={`w-full ${navItemClass(currentMenu === 'dashboard')}`}
                 >
                   <LayoutDashboard className="w-4 h-4" />
-                  <span>Dashboard Siswa</span>
+                  <span>Dashboard Murid</span>
                 </button>
               </div>
 
@@ -392,13 +393,17 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
         {/* Footer User & Logout */}
         <div className="p-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40">
+          <div className="mb-3">
+            <PWAInstallButton variant="sidebar" />
+          </div>
+
           <div className="flex items-center justify-between mb-3 px-1">
             <div className="min-w-0">
               <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">
                 {currentUser.name}
               </p>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                {currentUser.username} • <span className="font-semibold text-blue-600 dark:text-blue-400">{currentUser.role}</span>
+                {currentUser.username} • <span className="font-semibold text-blue-600 dark:text-blue-400">{currentUser.role === 'SISWA' ? 'MURID' : currentUser.role}</span>
               </p>
             </div>
           </div>

@@ -218,7 +218,7 @@ export const RiwayatAbsensiView: React.FC = () => {
           <input
             id="input-cari-riwayat"
             type="text"
-            placeholder="Cari berdasarkan nama siswa, NIS, atau ekstrakurikuler..."
+            placeholder="Cari berdasarkan nama murid, NIS, atau ekstrakurikuler..."
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -320,7 +320,7 @@ export const RiwayatAbsensiView: React.FC = () => {
             <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 uppercase text-[11px] font-semibold border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-4 py-3.5">Tanggal</th>
-                <th className="px-4 py-3.5">Nama Siswa</th>
+                <th className="px-4 py-3.5">Nama Murid</th>
                 <th className="px-4 py-3.5">Kelas</th>
                 <th className="px-4 py-3.5">Ekstrakurikuler</th>
                 <th className="px-4 py-3.5">Status</th>
@@ -421,12 +421,12 @@ export const RiwayatAbsensiView: React.FC = () => {
       <Modal
         isOpen={!!editingRecord}
         onClose={() => setEditingRecord(null)}
-        title="Ubah Status Absensi Siswa"
+        title="Ubah Status Absensi Murid"
       >
         {editingRecord && (
           <form onSubmit={handleUpdate} className="space-y-4">
             <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 text-xs space-y-1">
-              <div>Siswa: <strong>{getSiswa(editingRecord.siswaId)?.nama}</strong></div>
+              <div>Murid: <strong>{getSiswa(editingRecord.siswaId)?.nama}</strong></div>
               <div>Ekstrakurikuler: <strong>{getEkskul(editingRecord.ekskulId)?.nama}</strong></div>
               <div>Tanggal: <strong>{editingRecord.tanggal}</strong></div>
             </div>

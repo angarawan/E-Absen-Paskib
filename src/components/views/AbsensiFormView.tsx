@@ -175,7 +175,7 @@ export const AbsensiFormView: React.FC = () => {
       }))
     );
     setSaveSuccessNotice(false);
-    addToast('Semua siswa diset status HADIR.', 'info');
+    addToast('Semua murid diset status HADIR.', 'info');
   };
 
   // Save attendance
@@ -186,7 +186,7 @@ export const AbsensiFormView: React.FC = () => {
     }
 
     if (attendanceRows.length === 0) {
-      addToast('Tidak ada siswa anggota yang terdaftar pada kegiatan ini.', 'warning');
+      addToast('Tidak ada murid anggota yang terdaftar pada kegiatan ini.', 'warning');
       return;
     }
 
@@ -244,10 +244,10 @@ export const AbsensiFormView: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
-                Absensi Kehadiran Siswa
+                Absensi Kehadiran Murid
               </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Pilih kegiatan dan tanggal, lalu tandai status kehadiran siswa
+                Pilih kegiatan dan tanggal, lalu tandai status kehadiran murid
               </p>
             </div>
           </div>
@@ -338,7 +338,7 @@ export const AbsensiFormView: React.FC = () => {
               </span>
             </div>
             <span className="px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold">
-              {attendanceRows.length} Siswa Terdaftar
+              {attendanceRows.length} Murid Terdaftar
             </span>
           </div>
         )}
@@ -364,7 +364,7 @@ export const AbsensiFormView: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-emerald-800 dark:text-emerald-300 mt-0.5 font-medium">
-                Data kehadiran <strong>{attendanceRows.length} siswa</strong> ({countHadir} Hadir, {countIzin} Izin, {countSakit} Sakit, {countAlpa} Alpa) untuk kegiatan <strong>{selectedEkskulObj?.nama}</strong> pada tanggal <strong>{selectedTanggal}</strong> telah berhasil dicatat ke sistem.
+                Data kehadiran <strong>{attendanceRows.length} murid</strong> ({countHadir} Hadir, {countIzin} Izin, {countSakit} Sakit, {countAlpa} Alpa) untuk kegiatan <strong>{selectedEkskulObj?.nama}</strong> pada tanggal <strong>{selectedTanggal}</strong> telah berhasil dicatat ke sistem.
               </p>
             </div>
           </div>
@@ -417,7 +417,7 @@ export const AbsensiFormView: React.FC = () => {
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
             <div>
               <h5 className="font-bold text-xs sm:text-sm text-amber-900 dark:text-amber-100">
-                Siswa sudah melakukan absensi pada tanggal tersebut.
+                Murid sudah melakukan absensi pada tanggal tersebut.
               </h5>
               <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
                 Data kehadiran {selectedEkskulObj?.nama} ({selectedTanggal}) sudah tersimpan di sistem. Anda dapat mengubah status lalu menekan tombol "Perbarui Data Absensi".
@@ -491,7 +491,7 @@ export const AbsensiFormView: React.FC = () => {
             type="button"
             onClick={handleSetAllHadir}
             className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0"
-            title="Set semua siswa menjadi status HADIR"
+            title="Set semua murid menjadi status HADIR"
           >
             <CheckCheck className="w-4 h-4" />
             <span>✓ Hadirkan Semua</span>
@@ -517,7 +517,7 @@ export const AbsensiFormView: React.FC = () => {
           </button>
         </div>
       ) : viewMode === 'card' ? (
-        /* MODE DAFTAR 1 BARIS (KOMPAK & MUAT 1 BARIS DENGAN NAMA SISWA) */
+        /* MODE DAFTAR 1 BARIS (KOMPAK & MUAT 1 BARIS DENGAN NAMA MURID) */
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs divide-y divide-slate-100 dark:divide-slate-800 overflow-hidden">
           {displayedRows.map((row, idx) => {
             const isHadir = row.status === 'HADIR';
@@ -538,9 +538,9 @@ export const AbsensiFormView: React.FC = () => {
                     : 'bg-rose-50/40 dark:bg-rose-950/20'
                 }`}
               >
-                {/* 1 BARIS: No & Nama Siswa di kiri, Tombol kecil H, S, I, A di kanan */}
+                {/* 1 BARIS: No & Nama Murid di kiri, Tombol kecil H, S, I, A di kanan */}
                 <div className="flex items-center justify-between gap-2">
-                  {/* Kiri: Nomor, Nama Siswa, Kelas */}
+                  {/* Kiri: Nomor, Nama Murid, Kelas */}
                   <div className="flex items-center gap-2 min-w-0 flex-1">
                     <span className="text-xs font-bold text-slate-400 w-5 sm:w-6 text-right shrink-0">
                       {idx + 1}.
@@ -660,7 +660,7 @@ export const AbsensiFormView: React.FC = () => {
               <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 uppercase text-[11px] font-bold border-b border-slate-200 dark:border-slate-800">
                 <tr>
                   <th className="px-3 sm:px-4 py-3 w-12 text-center">No</th>
-                  <th className="px-3 sm:px-4 py-3">Nama Siswa</th>
+                  <th className="px-3 sm:px-4 py-3">Nama Murid</th>
                   <th className="px-3 sm:px-4 py-3">Kelas</th>
                   <th className="px-3 sm:px-4 py-3 text-center">Status (H / S / I / A)</th>
                   <th className="px-3 sm:px-4 py-3">Keterangan</th>
@@ -767,7 +767,7 @@ export const AbsensiFormView: React.FC = () => {
         <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
           <UserCheck className="w-4 h-4 text-blue-600" />
           <span>
-            Total Absen: <strong>{attendanceRows.length} Siswa</strong> ({countHadir} Hadir, {countIzin} Izin, {countSakit} Sakit, {countAlpa} Alpa)
+            Total Absen: <strong>{attendanceRows.length} Murid</strong> ({countHadir} Hadir, {countIzin} Izin, {countSakit} Sakit, {countAlpa} Alpa)
           </span>
         </div>
 

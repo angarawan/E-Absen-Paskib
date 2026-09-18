@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // School application collections with collaborative multi-device access
+    match /profil_sekolah/{docId} {
+      allow read, write: if true;
+    }
+    match /siswa/{docId} {
+      allow read, write: if true;
+    }
+    match /pembina/{docId} {
+      allow read, write: if true;
+    }
+    match /ekskul/{docId} {
+      allow read, write: if true;
+    }
+    match /anggota/{docId} {
+      allow read, write: if true;
+    }
+    match /jadwal/{docId} {
+      allow read, write: if true;
+    }
+    match /absensi/{docId} {
+      allow read, write: if true;
+    }
+    match /users/{docId} {
+      allow read, write: if true;
+    }
+    match /arsip_absensi/{docId} {
+      allow read, write: if true;
+    }
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

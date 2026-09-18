@@ -433,6 +433,26 @@ export const ProfilSekolahView: React.FC = () => {
                   </p>
                 </div>
               </div>
+
+              {/* 3. Simulasi Ikon Instalasi Aplikasi (PWA) di Layar Utama HP / Desktop */}
+              <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-900/60 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-slate-900 p-1 flex items-center justify-center shrink-0 shadow-xs border border-blue-500/30">
+                  <img
+                    src={formData.logoUrl || '/pwa-192x192.png'}
+                    alt="PWA Icon Preview"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase flex items-center gap-1">
+                    <Smartphone className="w-3 h-3" />
+                    Ikon Instalasi Aplikasi (Layar Utama HP & Laptop)
+                  </p>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 truncate">
+                    Otomatis menjadi ikon peramban & saat aplikasi dipasang (PWA)
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

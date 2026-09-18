@@ -42,7 +42,7 @@ export const DashboardSiswa: React.FC = () => {
   const myEkskulIds = myAnggota.map((a) => a.ekskulId);
   const myEkskuls = ekskul.filter((e) => myEkskulIds.includes(e.id));
 
-  // State for Presensi Mandiri Siswa
+  // State for Presensi Mandiri Murid
   const [selectedPresensiEkskulId, setSelectedPresensiEkskulId] = useState<string>(
     () => myEkskuls[0]?.id || ''
   );
@@ -96,7 +96,7 @@ export const DashboardSiswa: React.FC = () => {
     setIsSubmittingPresensi(true);
 
     const nowTime = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-    const ketText = presensiKeterangan.trim() || (presensiStatus === 'HADIR' ? 'Presensi Mandiri Siswa' : '-');
+    const ketText = presensiKeterangan.trim() || (presensiStatus === 'HADIR' ? 'Presensi Mandiri Murid' : '-');
 
     const result = saveBatchAbsensi(
       activePresensiEkskulId,
@@ -195,7 +195,7 @@ export const DashboardSiswa: React.FC = () => {
             </div>
             <div>
               <span className="inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 mb-1">
-                Siswa Aktif
+                Murid Aktif
               </span>
               <h3 className="text-xl sm:text-2xl font-black">{mySiswa.nama}</h3>
               <p className="text-sm text-blue-100 mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -222,7 +222,7 @@ export const DashboardSiswa: React.FC = () => {
         </div>
       </div>
 
-      {/* Widget Presensi Mandiri Siswa Hari Ini */}
+      {/* Widget Presensi Mandiri Murid Hari Ini */}
       {myEkskuls.length > 0 && (
         <div
           id="card-presensi-mandiri"
@@ -235,7 +235,7 @@ export const DashboardSiswa: React.FC = () => {
               </div>
               <div>
                 <h4 className="text-base font-bold text-slate-900 dark:text-white">
-                  Presensi Mandiri Siswa Hari Ini
+                  Presensi Mandiri Murid Hari Ini
                 </h4>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   Lakukan absensi langsung untuk sesi latihan kegiatan ekstrakurikuler hari ini ({todayStr})

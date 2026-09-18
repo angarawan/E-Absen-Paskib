@@ -1,0 +1,136 @@
+{
+  "entities": {
+    "ProfilSekolah": {
+      "title": "Profil Sekolah",
+      "description": "Informasi identitas dan konfigurasi sekolah",
+      "type": "object",
+      "properties": {
+        "npsn": { "type": "string" },
+        "namaSekolah": { "type": "string" },
+        "alamat": { "type": "string" },
+        "kota": { "type": "string" },
+        "provinsi": { "type": "string" },
+        "kepalaSekolah": { "type": "string" },
+        "nipKepalaSekolah": { "type": "string" },
+        "tahunAjaran": { "type": "string" },
+        "semester": { "type": "string" },
+        "logoUrl": { "type": "string" }
+      },
+      "required": ["namaSekolah", "tahunAjaran", "semester"]
+    },
+    "Siswa": {
+      "title": "Data Siswa",
+      "description": "Daftar murid sekolah",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nis": { "type": "string" },
+        "nama": { "type": "string" },
+        "kelas": { "type": "string" },
+        "jenisKelamin": { "type": "string" },
+        "noHp": { "type": "string" }
+      },
+      "required": ["id", "nis", "nama", "kelas"]
+    },
+    "Pembina": {
+      "title": "Data Guru Pembina",
+      "description": "Daftar guru pembina ekstrakurikuler",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nip": { "type": "string" },
+        "nama": { "type": "string" },
+        "ekskulId": { "type": "string" },
+        "noHp": { "type": "string" },
+        "email": { "type": "string" }
+      },
+      "required": ["id", "nama", "ekskulId"]
+    },
+    "Ekskul": {
+      "title": "Ekstrakurikuler",
+      "description": "Daftar cabang ekstrakurikuler",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nama": { "type": "string" },
+        "kategori": { "type": "string" },
+        "deskripsi": { "type": "string" },
+        "hari": { "type": "string" },
+        "jam": { "type": "string" },
+        "lokasi": { "type": "string" },
+        "pembinaId": { "type": "string" },
+        "aktif": { "type": "boolean" }
+      },
+      "required": ["id", "nama"]
+    },
+    "AnggotaEkskul": {
+      "title": "Anggota Ekskul",
+      "description": "Relasi siswa yang mengikuti ekstrakurikuler",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "siswaId": { "type": "string" },
+        "ekskulId": { "type": "string" },
+        "tanggalBergabung": { "type": "string" },
+        "jabatan": { "type": "string" }
+      },
+      "required": ["id", "siswaId", "ekskulId"]
+    },
+    "Jadwal": {
+      "title": "Jadwal Latihan",
+      "description": "Jadwal kegiatan rutin ekstrakurikuler",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "ekskulId": { "type": "string" },
+        "hari": { "type": "string" },
+        "jamMulai": { "type": "string" },
+        "jamSelesai": { "type": "string" },
+        "tempat": { "type": "string" },
+        "kegiatan": { "type": "string" }
+      },
+      "required": ["id", "ekskulId", "hari"]
+    },
+    "Absensi": {
+      "title": "Presensi Kehadiran",
+      "description": "Data absensi pertemuan kegiatan ekstrakurikuler",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "tanggal": { "type": "string" },
+        "ekskulId": { "type": "string" },
+        "pembinaId": { "type": "string" },
+        "materi": { "type": "string" },
+        "catatan": { "type": "string" },
+        "detail": { "type": "array" }
+      },
+      "required": ["id", "tanggal", "ekskulId"]
+    },
+    "User": {
+      "title": "Pengguna Sistem",
+      "description": "Akun login pengguna",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "nama": { "type": "string" },
+        "role": { "type": "string" },
+        "ekskulId": { "type": "string" },
+        "password": { "type": "string" }
+      },
+      "required": ["id", "username", "nama", "role"]
+    }
+  },
+  "firestore": {
+    "collections": {
+      "profil_sekolah": { "entity": "ProfilSekolah" },
+      "siswa": { "entity": "Siswa" },
+      "pembina": { "entity": "Pembina" },
+      "ekskul": { "entity": "Ekskul" },
+      "anggota": { "entity": "AnggotaEkskul" },
+      "jadwal": { "entity": "Jadwal" },
+      "absensi": { "entity": "Absensi" },
+      "users": { "entity": "User" }
+    }
+  }
+}

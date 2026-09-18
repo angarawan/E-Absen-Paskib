@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useRef } from 'react';
 import {
   User,
   UserRole,
@@ -29,6 +29,16 @@ import {
   createBackupPayload,
   BackupPayload,
 } from '../utils/storageVault';
+import {
+  subscribeSchoolData,
+  saveSchoolDataToCloud,
+  fetchSchoolDataFromCloud,
+  loginWithGoogle,
+  logoutFirebaseAuth,
+  onAuthChange,
+  CloudSchoolData,
+} from '../firebase/firestoreService';
+import type { User as FirebaseUser } from 'firebase/auth';
 
 export interface Toast {
   id: string;
@@ -42,6 +52,14 @@ interface AppContextType {
   currentUser: User | null;
   login: (username: string, password?: string) => boolean;
   logout: () => void;
+
+  // Cloud Firebase Synchronization
+  cloudSyncStatus: 'connected' | 'syncing' | 'offline' | 'error' | 'connecting';
+  lastCloudSyncTime: Date | null;
+  firebaseUser: FirebaseUser | null;
+  forcePushToCloud: () => Promise<{ success: boolean; message: string }>;
+  forcePullFromCloud: () => Promise<{ success: boolean; message: string }>;
+  signInWithGoogleAccount: () => Promise<{ success: boolean; message: string }>;
 
   // Safe Storage & Vault
   isStoragePersisted: boolean;
@@ -75,10 +93,12 @@ interface AppContextType {
   kelas: string[];
   profilSekolah: ProfilSekolah;
 
-  // CRUD Siswa
+  // CRUD Siswa / Murid
   addSiswa: (data: Omit<Siswa, 'id'>) => boolean;
   updateSiswa: (id: string, data: Partial<Siswa>) => void;
   deleteSiswa: (id: string) => void;
+  deleteMultipleSiswa: (ids: string[]) => void;
+  deleteAllSiswa: () => void;
 
   // CRUD Pembina
   addPembina: (data: Omit<Pembina, 'id'>) => boolean;
@@ -189,6 +209,80 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => saveStorage('users', users), [users]);
   useEffect(() => saveStorage('profilSekolah', profilSekolah), [profilSekolah]);
 
+  // Synchronize Browser Favicon, Apple-Touch-Icon & Web App Manifest with School Logo
+  useEffect(() => {
+    if (!profilSekolah?.logoUrl) return;
+
+    try {
+      // Update Tab Favicon
+      let iconLink = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+      if (!iconLink) {
+        iconLink = document.createElement('link');
+        iconLink.rel = 'icon';
+        document.head.appendChild(iconLink);
+      }
+      iconLink.href = profilSekolah.logoUrl;
+
+      // Update Apple Touch Icon (for iOS Safari home screen)
+      let appleLink = document.querySelector<HTMLLinkElement>("link[rel='apple-touch-icon']");
+      if (!appleLink) {
+        appleLink = document.createElement('link');
+        appleLink.rel = 'apple-touch-icon';
+        document.head.appendChild(appleLink);
+      }
+      appleLink.href = profilSekolah.logoUrl;
+
+      // Update Dynamic PWA Manifest with school emblem & identity
+      const dynamicManifest = {
+        id: '/',
+        start_url: '/',
+        scope: '/',
+        name: `Absensi Ekstrakurikuler - ${profilSekolah.namaSekolah || 'Sekolah'}`,
+        short_name: 'AbsenEkskul',
+        description: `Sistem Presensi & Ekstrakurikuler ${profilSekolah.namaSekolah}`,
+        display: 'standalone',
+        orientation: 'portrait-primary',
+        theme_color: '#1d4ed8',
+        background_color: '#0f172a',
+        icons: [
+          {
+            src: profilSekolah.logoUrl,
+            sizes: '192x192',
+            type: profilSekolah.logoUrl.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: profilSekolah.logoUrl,
+            sizes: '512x512',
+            type: profilSekolah.logoUrl.startsWith('data:image/svg') ? 'image/svg+xml' : 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      };
+
+      const manifestBlob = new Blob([JSON.stringify(dynamicManifest)], { type: 'application/json' });
+      const manifestUrl = URL.createObjectURL(manifestBlob);
+      let manifestLink = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+      if (manifestLink) {
+        manifestLink.href = manifestUrl;
+      }
+    } catch {
+      // Fallback to static manifest
+    }
+  }, [profilSekolah?.logoUrl, profilSekolah?.namaSekolah]);
+
   // Check persistent storage status on startup & auto request
   useEffect(() => {
     checkStoragePersisted().then((persisted) => {
@@ -216,6 +310,186 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
     saveSnapshotToVault(payload);
   }, [siswa, pembina, ekskul, anggota, jadwal, absensi, profilSekolah, users, arsipAbsensi]);
+
+  // Cloud Firebase Real-Time Synchronization State
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<
+    'connected' | 'syncing' | 'offline' | 'error' | 'connecting'
+  >('connecting');
+  const [lastCloudSyncTime, setLastCloudSyncTime] = useState<Date | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
+  const isRemoteUpdateRef = useRef(false);
+  const syncTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasInitializedFromCloud = useRef(false);
+
+  // 1. Firebase Auth listener
+  useEffect(() => {
+    const unsub = onAuthChange((user) => {
+      setFirebaseUser(user);
+    });
+    return () => unsub();
+  }, []);
+
+  // 2. Real-time Firebase Firestore Subscription
+  useEffect(() => {
+    const unsubscribe = subscribeSchoolData(
+      (cloudData: CloudSchoolData) => {
+        // If the Firestore document doesn't exist yet, seed it once with local data
+        if (!cloudData || Object.keys(cloudData).length === 0) {
+          if (!hasInitializedFromCloud.current) {
+            hasInitializedFromCloud.current = true;
+            saveSchoolDataToCloud({
+              siswa,
+              pembina,
+              ekskul,
+              anggota,
+              jadwal,
+              absensi,
+              arsipAbsensi,
+              profilSekolah,
+              users,
+            }).then(() => {
+              setCloudSyncStatus('connected');
+              setLastCloudSyncTime(new Date());
+            });
+          }
+          return;
+        }
+
+        hasInitializedFromCloud.current = true;
+        isRemoteUpdateRef.current = true;
+
+        if (Array.isArray(cloudData.siswa) && cloudData.siswa.length > 0) setSiswa(cloudData.siswa);
+        if (Array.isArray(cloudData.pembina) && cloudData.pembina.length > 0) setPembina(cloudData.pembina);
+        if (Array.isArray(cloudData.ekskul) && cloudData.ekskul.length > 0) setEkskul(cloudData.ekskul);
+        if (Array.isArray(cloudData.anggota)) setAnggota(cloudData.anggota);
+        if (Array.isArray(cloudData.jadwal)) setJadwal(cloudData.jadwal);
+        if (Array.isArray(cloudData.absensi)) setAbsensi(cloudData.absensi);
+        if (Array.isArray(cloudData.arsipAbsensi)) setArsipAbsensi(cloudData.arsipAbsensi);
+        if (cloudData.profilSekolah) setProfilSekolah(cloudData.profilSekolah);
+        if (Array.isArray(cloudData.users) && cloudData.users.length > 0) setUsers(cloudData.users);
+
+        setCloudSyncStatus('connected');
+        setLastCloudSyncTime(new Date());
+
+        setTimeout(() => {
+          isRemoteUpdateRef.current = false;
+        }, 800);
+      },
+      (err) => {
+        console.warn('Firestore subscription error:', err);
+        setCloudSyncStatus('offline');
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // 3. Debounced Auto-Sync to Firebase when local data changes
+  useEffect(() => {
+    // If update originated from Firestore snapshot, do not push back
+    if (isRemoteUpdateRef.current || !hasInitializedFromCloud.current) {
+      return;
+    }
+
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+
+    syncTimeoutRef.current = setTimeout(async () => {
+      setCloudSyncStatus('syncing');
+      const res = await saveSchoolDataToCloud(
+        {
+          siswa,
+          pembina,
+          ekskul,
+          anggota,
+          jadwal,
+          absensi,
+          arsipAbsensi,
+          profilSekolah,
+          users,
+        },
+        currentUser?.name || 'Sistem Sekolah'
+      );
+
+      if (res.success) {
+        setCloudSyncStatus('connected');
+        setLastCloudSyncTime(new Date());
+      } else {
+        setCloudSyncStatus('error');
+      }
+    }, 1500);
+
+    return () => {
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, [siswa, pembina, ekskul, anggota, jadwal, absensi, arsipAbsensi, profilSekolah, users]);
+
+  // 4. Force Push to Cloud
+  const forcePushToCloud = async () => {
+    setCloudSyncStatus('syncing');
+    const res = await saveSchoolDataToCloud(
+      {
+        siswa,
+        pembina,
+        ekskul,
+        anggota,
+        jadwal,
+        absensi,
+        arsipAbsensi,
+        profilSekolah,
+        users,
+      },
+      currentUser?.name || 'Admin Sekolah'
+    );
+    if (res.success) {
+      setCloudSyncStatus('connected');
+      setLastCloudSyncTime(new Date());
+      return { success: true, message: 'Data berhasil disinkronkan ke Cloud Firebase!' };
+    }
+    setCloudSyncStatus('error');
+    return { success: false, message: res.error || 'Gagal sinkronisasi ke Cloud' };
+  };
+
+  // 5. Force Pull from Cloud
+  const forcePullFromCloud = async () => {
+    setCloudSyncStatus('syncing');
+    const res = await fetchSchoolDataFromCloud();
+    if (res.success && res.data) {
+      isRemoteUpdateRef.current = true;
+      if (res.data.siswa) setSiswa(res.data.siswa);
+      if (res.data.pembina) setPembina(res.data.pembina);
+      if (res.data.ekskul) setEkskul(res.data.ekskul);
+      if (res.data.anggota) setAnggota(res.data.anggota);
+      if (res.data.jadwal) setJadwal(res.data.jadwal);
+      if (res.data.absensi) setAbsensi(res.data.absensi);
+      if (res.data.arsipAbsensi) setArsipAbsensi(res.data.arsipAbsensi);
+      if (res.data.profilSekolah) setProfilSekolah(res.data.profilSekolah);
+      if (res.data.users) setUsers(res.data.users);
+
+      setCloudSyncStatus('connected');
+      setLastCloudSyncTime(new Date());
+
+      setTimeout(() => {
+        isRemoteUpdateRef.current = false;
+      }, 500);
+
+      return { success: true, message: 'Data terbaru dari Cloud berhasil dimuat!' };
+    }
+    setCloudSyncStatus('error');
+    return { success: false, message: res.error || 'Gagal memuat data dari Cloud' };
+  };
+
+  // 6. Sign in with Google
+  const signInWithGoogleAccount = async () => {
+    const res = await loginWithGoogle();
+    if (res.success && res.user) {
+      return { success: true, message: `Berhasil login sebagai ${res.user.displayName || res.user.email}` };
+    }
+    return { success: false, message: res.error || 'Gagal login dengan Google' };
+  };
 
   // Request Persistent Storage explicitly
   const requestPersistence = async (): Promise<boolean> => {
@@ -353,7 +627,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setUsers((prev) => [...prev, newUser]);
     }
 
-    addToast(`Siswa "${data.nama}" berhasil ditambahkan.`, 'success');
+    addToast(`Murid "${data.nama}" berhasil ditambahkan.`, 'success');
     return true;
   };
 
@@ -367,7 +641,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         prev.map((u) => (u.refId === id ? { ...u, name: data.nama! } : u))
       );
     }
-    addToast('Data siswa berhasil diperbarui.', 'success');
+    addToast('Data murid berhasil diperbarui.', 'success');
   };
 
   const deleteSiswa = (id: string) => {
@@ -377,7 +651,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAnggota((prev) => prev.filter((a) => a.siswaId !== id));
     setAbsensi((prev) => prev.filter((ab) => ab.siswaId !== id));
     setUsers((prev) => prev.filter((u) => u.refId !== id));
-    addToast(`Siswa "${target?.nama || id}" berhasil dihapus.`, 'info');
+    addToast(`Murid "${target?.nama || id}" berhasil dihapus.`, 'info');
+  };
+
+  const deleteMultipleSiswa = (ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    const idSet = new Set(ids);
+    setSiswa((prev) => prev.filter((s) => !idSet.has(s.id)));
+    setAnggota((prev) => prev.filter((a) => !idSet.has(a.siswaId)));
+    setAbsensi((prev) => prev.filter((ab) => !idSet.has(ab.siswaId)));
+    setUsers((prev) => prev.filter((u) => !u.refId || !idSet.has(u.refId)));
+    addToast(`${ids.length} data murid berhasil dihapus.`, 'info');
+  };
+
+  const deleteAllSiswa = () => {
+    if (siswa.length === 0) {
+      addToast('Tidak ada data murid untuk dihapus.', 'warning');
+      return;
+    }
+    const count = siswa.length;
+    const allIds = new Set(siswa.map((s) => s.id));
+    setSiswa([]);
+    setAnggota((prev) => prev.filter((a) => !allIds.has(a.siswaId)));
+    setAbsensi((prev) => prev.filter((ab) => !allIds.has(ab.siswaId)));
+    setUsers((prev) => prev.filter((u) => !u.refId || !allIds.has(u.refId)));
+    addToast(`Semua ${count} data murid berhasil dihapus.`, 'info');
   };
 
   // CRUD Pembina
@@ -668,6 +966,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         currentUser,
         login,
         logout,
+        cloudSyncStatus,
+        lastCloudSyncTime,
+        firebaseUser,
+        forcePushToCloud,
+        forcePullFromCloud,
+        signInWithGoogleAccount,
         isStoragePersisted,
         requestPersistence,
         arsipAbsensi,
@@ -693,6 +997,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addSiswa,
         updateSiswa,
         deleteSiswa,
+        deleteMultipleSiswa,
+        deleteAllSiswa,
         addPembina,
         updatePembina,
         deletePembina,

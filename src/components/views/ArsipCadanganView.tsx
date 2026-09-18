@@ -19,6 +19,13 @@ import {
   Lock,
   ArrowRight,
   Info,
+  Smartphone,
+  Laptop,
+  ArrowLeftRight,
+  Share2,
+  Cloud,
+  CloudUpload,
+  CloudDownload,
 } from 'lucide-react';
 import {
   createBackupPayload,
@@ -46,10 +53,22 @@ export const ArsipCadanganView: React.FC = () => {
     archiveOldRecords,
     restoreArchivedRecords,
     addToast,
+    cloudSyncStatus,
+    lastCloudSyncTime,
+    forcePushToCloud,
+    forcePullFromCloud,
   } = useApp();
 
+  const [isCloudLoading, setIsCloudLoading] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<'cadangan' | 'arsip-lama' | 'pulihkan'>('cadangan');
+  const [activeTab, setActiveTab] = useState<'cadangan' | 'sinkron-device' | 'arsip-lama' | 'pulihkan'>('cadangan');
+
+  // Device Sync State
+  const [syncInputText, setSyncInputText] = useState('');
+  const [syncPreview, setSyncPreview] = useState<BackupPayload | null>(null);
+  const [syncError, setSyncError] = useState('');
+  const [isSyncCopied, setIsSyncCopied] = useState(false);
 
   // Archive Filter
   const [cutoffDate, setCutoffDate] = useState(() => {
@@ -289,6 +308,20 @@ export const ArsipCadanganView: React.FC = () => {
         </button>
 
         <button
+          id="tab-sinkron-device"
+          type="button"
+          onClick={() => setActiveTab('sinkron-device')}
+          className={`pb-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all ${
+            activeTab === 'sinkron-device'
+              ? 'border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+          }`}
+        >
+          <ArrowLeftRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span>Sinkronisasi Laptop ⇄ HP</span>
+        </button>
+
+        <button
           type="button"
           onClick={() => setActiveTab('arsip-lama')}
           className={`pb-3 px-4 font-bold text-xs sm:text-sm border-b-2 flex items-center gap-2 transition-all ${
@@ -314,6 +347,290 @@ export const ArsipCadanganView: React.FC = () => {
           <span>Pulihkan (Restore) Data</span>
         </button>
       </div>
+
+      {/* TAB SINKRONISASI LAPTOP <-> HP */}
+      {activeTab === 'sinkron-device' && (
+        <div className="space-y-6">
+          {/* Cloud Database Firebase Live Connection Banner */}
+          <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-blue-500/10 to-indigo-500/10 border border-emerald-300 dark:border-emerald-800/70 p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                  <Cloud className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    Cloud Database Firebase: Aktif & Terhubung
+                  </div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white mt-1">
+                    Sinkronisasi Otomatis Real-Time Aktif
+                  </h3>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5 max-w-2xl">
+                    Setiap data absensi, siswa, atau jadwal yang Anda perbarui di laptop langsung tersinkronkan ke HP dan sebaliknya melalui Google Cloud Firestore.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                <button
+                  id="btn-sync-push-cloud"
+                  type="button"
+                  disabled={isCloudLoading}
+                  onClick={async () => {
+                    setIsCloudLoading(true);
+                    const res = await forcePushToCloud();
+                    setIsCloudLoading(false);
+                    if (res.success) {
+                      addToast('Semua data lokal berhasil diunggah dan disinkronkan ke Cloud Firebase!', 'success', 'Sinkronisasi Cloud Berhasil');
+                    } else {
+                      addToast(res.message, 'error');
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50"
+                >
+                  <CloudUpload className="w-4 h-4" />
+                  <span>Kirim Data ke Cloud</span>
+                </button>
+                <button
+                  id="btn-sync-pull-cloud"
+                  type="button"
+                  disabled={isCloudLoading}
+                  onClick={async () => {
+                    setIsCloudLoading(true);
+                    const res = await forcePullFromCloud();
+                    setIsCloudLoading(false);
+                    if (res.success) {
+                      addToast('Data terbaru dari Cloud Firebase berhasil dimuat ke perangkat ini!', 'success', 'Data Diperbarui');
+                    } else {
+                      addToast(res.message, 'error');
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold transition-all active:scale-95 disabled:opacity-50"
+                >
+                  <CloudDownload className="w-4 h-4 text-blue-600" />
+                  <span>Tarik Data Terbaru</span>
+                </button>
+              </div>
+            </div>
+
+            {lastCloudSyncTime && (
+              <div className="pt-3 border-t border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span>Waktu Sinkronisasi Terakhir: <strong>{lastCloudSyncTime.toLocaleTimeString('id-ID')} ({lastCloudSyncTime.toLocaleDateString('id-ID')})</strong></span>
+                <span className="text-emerald-700 dark:text-emerald-400 font-semibold">Terkoneksi ke Cloud Firestore</span>
+              </div>
+            )}
+          </div>
+
+          {/* Alternative Offline / Manual Sync */}
+          <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-800/60 text-xs text-slate-600 dark:text-slate-400 space-y-1 border border-slate-200 dark:border-slate-700/60">
+            <p className="font-bold text-slate-800 dark:text-slate-200">
+              Alternatif Manual (Jika Berada di Wilayah Tanpa Sinyal / Offline):
+            </p>
+            <p>
+              Anda tetap dapat menggunakan metode salin-tempel kode atau unduh berkas di bawah ini apabila perangkat pembina sedang offline sepenuhnya:
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Step 1: Di Laptop (Kirim / Salin Data) */}
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Laptop className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-amber-600 dark:text-amber-400">
+                    Langkah 1: Jika Anda di Laptop
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Salin atau Unduh Data dari Laptop
+                  </h4>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Salin seluruh data yang telah Anda edit (data siswa, pembina, ekskul, dan presensi terkini) untuk dikirimkan ke HP:
+              </p>
+
+              <div className="space-y-3 pt-1">
+                <button
+                  id="btn-copy-sync-code"
+                  type="button"
+                  onClick={() => {
+                    const payload = createBackupPayload({
+                      siswa,
+                      pembina,
+                      ekskul,
+                      anggota,
+                      jadwal,
+                      absensi,
+                      profilSekolah,
+                      users,
+                      arsipAbsensi: arsipAbsensi || [],
+                    });
+                    navigator.clipboard.writeText(JSON.stringify(payload));
+                    setIsSyncCopied(true);
+                    addToast('Kode data sinkronisasi berhasil disalin! Buka WhatsApp Web / kirim ke HP Anda, lalu tempel di kolom HP.', 'success', 'Data Tersalin');
+                    setTimeout(() => setIsSyncCopied(false), 4000);
+                  }}
+                  className="w-full flex items-center justify-center gap-2.5 px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition-all active:scale-98"
+                >
+                  {isSyncCopied ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                  <span>{isSyncCopied ? 'Kode Data Berhasil Disalin!' : '1. Salin Kode Data ke Clipboard'}</span>
+                </button>
+
+                <div className="flex items-center justify-between text-xs text-slate-500 py-1">
+                  <span className="h-px bg-slate-200 dark:bg-slate-800 flex-1"></span>
+                  <span className="px-3 font-semibold text-[11px]">ATAU</span>
+                  <span className="h-px bg-slate-200 dark:bg-slate-800 flex-1"></span>
+                </div>
+
+                <button
+                  id="btn-download-sync-file"
+                  type="button"
+                  onClick={handleDownloadBackup}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-slate-800 dark:text-slate-200 font-bold text-xs transition-colors"
+                >
+                  <HardDriveDownload className="w-4 h-4 text-blue-600" />
+                  <span>2. Unduh Berkas JSON (Kirim via WA / Drive ke HP)</span>
+                </button>
+              </div>
+
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl text-[11px] text-slate-600 dark:text-slate-400 space-y-1">
+                <p className="font-semibold text-slate-700 dark:text-slate-300">💡 Tips Cepat via WhatsApp Web:</p>
+                <p>Klik tombol <strong>"Salin Kode Data"</strong> di atas, buka WhatsApp Web di laptop, lalu kirim ke pesan pribadi (Chat with yourself) atau nomor Anda. Buka pesan tersebut di HP, salin teksnya, lalu tempel di kolom sebelah kanan!</p>
+              </div>
+            </div>
+
+            {/* Step 2: Di HP (Terapkan / Tempel Data) */}
+            <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-extrabold tracking-wider text-emerald-600 dark:text-emerald-400">
+                    Langkah 2: Jika Anda di HP
+                  </span>
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Tempel & Terapkan Data ke HP Ini
+                  </h4>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                Tempelkan teks kode data yang disalin dari laptop ke kotak di bawah ini:
+              </p>
+
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-[11px]">
+                  <label htmlFor="sync-textarea" className="font-semibold text-slate-700 dark:text-slate-300">
+                    Teks Kode Data Cadangan:
+                  </label>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        const text = await navigator.clipboard.readText();
+                        setSyncInputText(text);
+                        const res = validateBackupFile(text.trim());
+                        if (res.valid && res.payload) {
+                          setSyncPreview(res.payload);
+                          setSyncError('');
+                          addToast('Kode berhasil ditempel dan valid!', 'info');
+                        } else {
+                          setSyncError(res.error || 'Format tidak valid');
+                        }
+                      } catch {
+                        addToast('Gunakan klik kanan/tahan lalu Tempel (Paste) di kotak.', 'info');
+                      }
+                    }}
+                    className="text-blue-600 dark:text-blue-400 font-bold hover:underline"
+                  >
+                    Tempel dari Clipboard
+                  </button>
+                </div>
+                <textarea
+                  id="sync-textarea"
+                  value={syncInputText}
+                  onChange={(e) => {
+                    const text = e.target.value;
+                    setSyncInputText(text);
+                    if (!text.trim()) {
+                      setSyncPreview(null);
+                      setSyncError('');
+                      return;
+                    }
+                    const res = validateBackupFile(text.trim());
+                    if (res.valid && res.payload) {
+                      setSyncPreview(res.payload);
+                      setSyncError('');
+                    } else {
+                      setSyncPreview(null);
+                      setSyncError(res.error || 'Format kode tidak valid');
+                    }
+                  }}
+                  placeholder='Tempel (Paste) kode data JSON di sini...'
+                  rows={4}
+                  className="w-full text-xs font-mono p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {syncError && (
+                <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 text-xs text-rose-700 dark:text-rose-300">
+                  {syncError}
+                </div>
+              )}
+
+              {syncPreview && (
+                <div className="p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 space-y-2 text-xs">
+                  <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-bold">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Data Siap Disinkronkan:</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-700 dark:text-slate-300">
+                    <p>Sekolah: <strong>{syncPreview.metadata?.namaSekolah}</strong></p>
+                    <p>Total Siswa: <strong>{syncPreview.data?.siswa?.length || 0}</strong></p>
+                    <p>Total Absensi: <strong>{syncPreview.data?.absensi?.length || 0}</strong></p>
+                    <p>Total Ekskul: <strong>{syncPreview.data?.ekskul?.length || 0}</strong></p>
+                  </div>
+                </div>
+              )}
+
+              <button
+                id="btn-apply-sync-code"
+                type="button"
+                disabled={!syncPreview}
+                onClick={() => {
+                  if (!syncPreview) return;
+                  if (confirm(`Sinkronkan data HP sekarang? Seluruh data di HP ini akan diperbarui dengan data dari laptop.`)) {
+                    const res = restoreFromBackup(syncPreview);
+                    if (res.success) {
+                      addToast('Sinkronisasi Sukses! HP Anda kini memiliki data yang sama persis dengan laptop.', 'success', 'Sinkronisasi Selesai');
+                      setSyncPreview(null);
+                      setSyncInputText('');
+                    } else {
+                      addToast(res.message, 'error');
+                    }
+                  }
+                }}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs shadow-xs transition-all ${
+                  syncPreview
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-98'
+                    : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Terapkan & Samakan Data HP Sekarang</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: CADANGAN & EKSPOR DATA AMAN */}
       {activeTab === 'cadangan' && (
